@@ -1,70 +1,184 @@
-# Getting Started with Create React App
+# ACE Frontend — Command Center
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+The **ACE Frontend** (also known as the **Command Center**) is the interactive and visual layer of the Autonomous Content Engine (ACE).
+It provides a unified interface for observing agent performance, triggering workflows, viewing creative artifacts, and managing the feedback loop that fuels ACE’s learning and optimization.
 
-## Available Scripts
+---
 
-In the project directory, you can run:
+## 🚀 Purpose
 
-### `npm start`
+The ACE Frontend transforms ACE from a backend automation engine into an **operational intelligence platform**.
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+It allows you to:
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+* View live system and agent performance
+* Inspect and compare generated outputs (scripts, video prompts, media)
+* Trigger workflows manually or on demand
+* Stream logs and test results in real time
+* Submit qualitative feedback that improves ACE’s creative models
 
-### `npm test`
+---
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+## 🧠 Key Concepts
 
-### `npm run build`
+### Agents
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+The UI represents each ACE backend agent (e.g., Scriptwriter, Editor, Publisher) as an interactive module.  Each module shows status, logs, test results, and provides controls to trigger agent runs.
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+### Workflows
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+The frontend exposes workflow orchestration in real time. You can view stages, dependencies, and runtime results, and manually start workflows like **ContentCycle**, **TrendRefresh**, or **OptimizationCycle**.
 
-### `npm run eject`
+### Artifacts
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+All creative outputs are accessible through the **Artifact Hub**:
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+* **Scripts** — from ScriptwriterAgent
+* **Editor Outputs** — video prompt data + generated video previews
+* **Experiments & Notes** — contextual creative intelligence
+* **Visual Assets** — images, thumbnails, and rendered clips
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+### Feedback
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+Feedback is a key human-in-the-loop element. The Command Center includes interfaces to:
 
-## Learn More
+* Rate generated artifacts
+* Annotate failures or creative misalignments
+* Feed structured feedback into ACE’s OptimizationAgent
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+---
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+## 🧩 Architecture Overview
 
-### Code Splitting
+**Stack:**
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+* **Framework:** Next.js 15 (App Router)
+* **Language:** TypeScript
+* **Styling:** Tailwind CSS + shadcn/ui
+* **State:** React Query + Supabase Realtime
+* **Data:** Supabase (events, artifacts, feedback)
+* **Visualization:** Recharts / D3.js
+* **Media:** Supabase Storage / S3-compatible bucket
 
-### Analyzing the Bundle Size
+**Structure:**
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+```
+src/
+  components/       — Reusable UI modules (cards, tables, viewers)
+  pages/            — Next.js routes
+  hooks/            — Data fetching, mutations, realtime subscriptions
+  lib/              — API clients, event logging, Supabase integration
+  styles/           — Tailwind + design tokens
+architecture/
+  overview.md       — Architectural summary
+  ui-flows.md       — User interaction patterns
+AGENTS.md           — Rules for AI coding agents in this repo
+README.md           — This file
+```
 
-### Making a Progressive Web App
+---
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+## 🔄 Data Flow
 
-### Advanced Configuration
+```
+User Action → Frontend API (Next.js route)
+  ↓
+Orchestrator executes workflow or agent
+  ↓
+Agent writes to Supabase (system_events, artifacts)
+  ↓
+Supabase Realtime pushes updates to UI
+  ↓
+Frontend renders progress and outputs
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+---
 
-### Deployment
+## 🎨 Core Views
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+### Dashboard
 
-### `npm run build` fails to minify
+* Global system status
+* Workflow and agent activity graphs
+* Test suite summaries
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+### Agents Console
+
+* Live agent logs and performance states
+* Manual triggers for agent runs
+* Status and event stream
+
+### Artifact Hub
+
+* Display scripts, experiments, editor prompts, videos, and images
+* Explore structured metadata and media assets
+* Preview creative outputs in multiple formats
+
+### Feedback View
+
+* Rate outputs and add notes
+* Visualize collective feedback over time
+
+---
+
+## 🧱 Design Principles
+
+1. **Transparency** — Make agent behavior visible and traceable.
+2. **Interactivity** — Enable human-initiated exploration and testing.
+3. **Scalability** — Support new artifact types and agents with minimal config.
+4. **Composability** — Build reusable UI components across modules.
+5. **Reliability** — Mirror backend state accurately in real time.
+
+---
+
+## ⚙️ Development
+
+### Setup
+
+```
+npm install
+npm run dev
+```
+
+### Environment Variables
+
+```
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+NEXT_PUBLIC_API_BASE_URL=
+```
+
+### Build & Test
+
+```
+npm run build
+npm run lint
+npm run test
+```
+
+### Deploy
+
+Deploy via Vercel or Railway. The app connects to Supabase for data and event streaming.
+
+---
+
+## 🤖 AI Coding Agents
+
+Autonomous AI contributors (e.g., Codex, Copilot) should follow `AGENTS.md`.
+That file defines safe conventions for writing UI logic, integrating APIs, and maintaining code quality.
+
+---
+
+## 📈 Future Extensions
+
+* Cross-agent comparison dashboards
+* Multi-product creative timelines
+* Interactive visual editing of agent prompts
+* Integrated media rendering (via video generation models)
+
+---
+
+### Summary
+
+The ACE Frontend is the **control surface** of the Autonomous Content Engine — the bridge between machine creativity and human judgment.
+Its design emphasizes **visibility, interactivity, and creative insight**, turning ACE into a transparent, explorable, and adaptive system.
