@@ -1,12 +1,17 @@
-import React from 'react';
+import type { Metadata } from 'next';
 
-import '../src/index.css';
+import './globals.css';
 
-interface RootLayoutProps {
+export const metadata: Metadata = {
+  title: 'ACE Frontend',
+  description: 'ACE UI playground powered by Next.js and Tailwind.',
+};
+
+export default function RootLayout({
+  children,
+}: {
   children: React.ReactNode;
-}
-
-export default function RootLayout({ children }: RootLayoutProps): React.ReactElement {
+}): JSX.Element {
   return (
     <html lang="en">
       <body className="min-h-screen bg-background text-foreground antialiased">{children}</body>
