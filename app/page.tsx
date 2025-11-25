@@ -1,11 +1,74 @@
-import Link from 'next/link';
+import { z } from 'zod';
 
 import { Badge } from '../components/ui/badge';
-import { Button, buttonVariants } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
-import { cn } from '../lib/utils';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '../components/ui/table';
+import { getSupabaseClient } from '../lib/supabase';
 
-export default function HomePage(): JSX.Element {
+export const dynamic = 'force-dynamic';
+
+const systemEventSchema = z.object({
+  id: z.union([z.string(), z.number()]).transform((value) => String(value)),
+  event_type: z.string().nullable().optional(),
+  actor: z.string().nullable().optional(),
+  created_at: z.string().nullable().optional(),
+  description: z.string().nullable().optional(),
+});
+
+type SystemEvent = z.infer<typeof systemEventSchema>;
+
+async function loadSystemEvents(): Promise<{ events: SystemEvent[]; error?: string }> {
+  const supabase = getSupabaseClient();
+
+  try {
+    const { data, error } = await supabase
+      .from('system_events')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(5);
+
+    if (error) {
+      console.error('[agent]', 'Failed to fetch system_events', error);
+      return { events: [], error: 'Unable to load events' };
+    }
+
+    const parsed = z.array(systemEventSchema).safeParse(data ?? []);
+    if (!parsed.success) {
+      console.error('[agent]', 'system_events validation failed', parsed.error.flatten());
+      return { events: [], error: 'Invalid event shape returned' };
+    }
+
+    console.info('[agent]', `Loaded ${parsed.data.length} system_events`);
+    return { events: parsed.data };
+  } catch (unexpectedError) {
+    console.error('[agent]', 'Unexpected error loading system_events', unexpectedError);
+    return { events: [], error: 'Unexpected error' };
+  }
+}
+
+function formatTimestamp(value?: string | null): string {
+  if (!value) {
+    return '—';
+  }
+
+  const parsedDate = new Date(value);
+  if (Number.isNaN(parsedDate.getTime())) {
+    return value;
+  }
+
+  return parsedDate.toLocaleString();
+}
+
+export default async function HomePage(): Promise<JSX.Element> {
+  const { events, error } = await loadSystemEvents();
+
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_20%_20%,rgba(237,197,49,0.14),transparent_32%),radial-gradient(circle_at_78%_8%,rgba(146,108,21,0.12),transparent_36%),linear-gradient(180deg,#0f0c08,#0c0906)] px-6 py-12 text-foreground">
       <div className="mx-auto flex max-w-5xl flex-col gap-8">
@@ -19,40 +82,76 @@ export default function HomePage(): JSX.Element {
             </span>
           </h1>
           <p className="text-sm text-muted-foreground max-w-2xl">
-            Next.js app directory is wired up with Tailwind tokens and shadcn/ui primitives.
+            Supabase-backed dashboard preview with recent events and placeholder metrics.
           </p>
         </header>
 
+        <div className="grid gap-4 md:grid-cols-2">
+          <Card className="border-border/70 bg-card/80 backdrop-blur-sm">
+            <CardHeader className="pb-3">
+              <CardTitle>Agents Online</CardTitle>
+              <CardDescription>Connected agents currently reporting.</CardDescription>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <p className="text-3xl font-semibold text-foreground">3</p>
+            </CardContent>
+          </Card>
+          <Card className="border-border/70 bg-card/80 backdrop-blur-sm">
+            <CardHeader className="pb-3">
+              <CardTitle>Workflows Active</CardTitle>
+              <CardDescription>In-flight orchestrations across ACE.</CardDescription>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <p className="text-3xl font-semibold text-foreground">2</p>
+            </CardContent>
+          </Card>
+        </div>
+
         <Card className="border-border/70 bg-card/80 backdrop-blur-sm">
           <CardHeader>
-            <CardTitle>Test route</CardTitle>
-            <CardDescription>
-              Jump into the sample UI kit preview you sketched under <code>/app/test</code>.
-            </CardDescription>
+            <CardTitle>Recent System Events</CardTitle>
+            <CardDescription>Last 5 rows from the system_events table.</CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-wrap items-center justify-between gap-4">
-            <p className="text-sm text-muted-foreground">
-              The ACE styles and components are ready; run <code>npm run dev</code> and visit
-              <code> /test</code> to view the table, modal, and controls you built.
-            </p>
-            <Link
-              href="/test"
-              className={cn(buttonVariants({ size: 'md' }), 'shadow-soft transition hover:shadow-xl')}
-            >
-              Open /test
-            </Link>
-          </CardContent>
-        </Card>
-
-        <Card className="border-border/70 bg-[radial-gradient(circle_at_20%_10%,rgba(237,197,49,0.14),transparent_48%),radial-gradient(circle_at_90%_0%,rgba(146,108,21,0.18),transparent_44%),linear-gradient(145deg,#16120c,#0f0c08)] shadow-xl backdrop-blur-md">
-          <CardHeader>
-            <CardTitle>Project status</CardTitle>
-            <CardDescription>Frontend now runs with Next.js instead of CRA tooling.</CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-wrap gap-3">
-            <Button variant="outline">Next dev server ready</Button>
-            <Button variant="secondary">Tailwind tokens loaded</Button>
-            <Button>Shadcn/ui components available</Button>
+          <CardContent className="overflow-hidden rounded-lg border">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/50 text-muted-foreground">
+                  <TableHead>Event</TableHead>
+                  <TableHead>Actor</TableHead>
+                  <TableHead className="text-right">Timestamp</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {error && (
+                  <TableRow>
+                    <TableCell colSpan={3} className="text-sm text-destructive">
+                      {error}
+                    </TableCell>
+                  </TableRow>
+                )}
+                {!error && events.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={3} className="text-sm text-muted-foreground">
+                      No events found.
+                    </TableCell>
+                  </TableRow>
+                )}
+                {!error &&
+                  events.map((event) => (
+                    <TableRow key={event.id}>
+                      <TableCell className="font-medium">
+                        {event.event_type ?? 'Unknown event'}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {event.actor ?? 'N/A'}
+                      </TableCell>
+                      <TableCell className="text-right text-sm text-muted-foreground">
+                        {formatTimestamp(event.created_at)}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+              </TableBody>
+            </Table>
           </CardContent>
         </Card>
       </div>
