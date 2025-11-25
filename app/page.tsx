@@ -7,17 +7,23 @@ import { cn } from '../lib/utils';
 
 export default function HomePage(): JSX.Element {
   return (
-    <main className="min-h-screen bg-gradient-to-b from-ace-light via-white to-ace-light px-6 py-10">
+    <main className="min-h-screen bg-[radial-gradient(circle_at_20%_20%,rgba(237,197,49,0.14),transparent_32%),radial-gradient(circle_at_78%_8%,rgba(146,108,21,0.12),transparent_36%),linear-gradient(180deg,#0f0c08,#0c0906)] px-6 py-12 text-foreground">
       <div className="mx-auto flex max-w-5xl flex-col gap-8">
-        <header className="space-y-2">
-          <Badge variant="accent">ACE preview</Badge>
-          <h1 className="text-3xl font-semibold text-foreground">ACE Frontend sandbox</h1>
-          <p className="text-sm text-muted-foreground">
+        <header className="space-y-3">
+          <Badge variant="accent" className="bg-accent/15 text-accent-foreground">
+            ACE preview
+          </Badge>
+          <h1 className="text-3xl font-semibold">
+            <span className="bg-gradient-to-r from-ace-gold via-amber-200 to-ace-gold-deep bg-clip-text text-transparent">
+              ACE Frontend sandbox
+            </span>
+          </h1>
+          <p className="text-sm text-muted-foreground max-w-2xl">
             Next.js app directory is wired up with Tailwind tokens and shadcn/ui primitives.
           </p>
         </header>
 
-        <Card>
+        <Card className="border-border/70 bg-card/80 backdrop-blur-sm">
           <CardHeader>
             <CardTitle>Test route</CardTitle>
             <CardDescription>
@@ -38,7 +44,7 @@ export default function HomePage(): JSX.Element {
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-white to-ace-light/60">
+        <Card className="border-border/70 bg-[radial-gradient(circle_at_20%_10%,rgba(237,197,49,0.14),transparent_48%),radial-gradient(circle_at_90%_0%,rgba(146,108,21,0.18),transparent_44%),linear-gradient(145deg,#16120c,#0f0c08)] shadow-xl backdrop-blur-md">
           <CardHeader>
             <CardTitle>Project status</CardTitle>
             <CardDescription>Frontend now runs with Next.js instead of CRA tooling.</CardDescription>
