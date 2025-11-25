@@ -14,7 +14,7 @@ export default function HomePage(): JSX.Element {
             ACE preview
           </Badge>
           <h1 className="text-3xl font-semibold">
-            <span className="bg-gradient-to-r from-ace-gold via-amber-200 to-ace-gold-deep bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-amber-100 via-ace-gold to-amber-100 bg-clip-text text-transparent drop-shadow-[0_0_12px_rgba(237,197,49,0.28)]">
               ACE Frontend sandbox
             </span>
           </h1>
