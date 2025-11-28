@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import type { ReactNode } from 'react';
+import type { ReactNode, ReactElement } from 'react';
+import type { UrlObject } from 'url';
 
 import './globals.css';
 import { buttonVariants } from '../components/ui/button';
@@ -25,7 +26,7 @@ export const metadata: Metadata = {
   description: 'ACE UI playground powered by Next.js and Tailwind.',
 };
 
-export default function RootLayout({ children }: { children: ReactNode }): JSX.Element {
+export default function RootLayout({ children }: { children: ReactNode }): ReactElement {
   return (
     <html lang="en" className="dark">
       <body className="min-h-screen bg-background text-foreground antialiased">
@@ -40,7 +41,7 @@ export default function RootLayout({ children }: { children: ReactNode }): JSX.E
                   {navItems.map((item) => (
                     <Link
                       key={item.href}
-                      href={item.href}
+                      href={item.href as unknown as UrlObject}
                       className={cn(
                         buttonVariants({ variant: 'ghost', size: 'md' }),
                         'w-full justify-start text-foreground hover:bg-primary/10'

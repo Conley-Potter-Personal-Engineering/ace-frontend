@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { ReactElement } from 'react';
 
 import { Badge } from '../components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
@@ -15,14 +16,23 @@ import { getSupabaseClient } from '../lib/supabase';
 export const dynamic = 'force-dynamic';
 
 const systemEventSchema = z.object({
-  id: z.union([z.string(), z.number()]).transform((value) => String(value)),
+  event_id: z.string().optional(),
+  id: z.union([z.string(), z.number()]).optional(),
   event_type: z.string().nullable().optional(),
-  actor: z.string().nullable().optional(),
+  agent_name: z.string().nullable().optional(),
+  payload: z.unknown().optional(),
   created_at: z.string().nullable().optional(),
-  description: z.string().nullable().optional(),
 });
 
-type SystemEvent = z.infer<typeof systemEventSchema>;
+type RawSystemEvent = z.infer<typeof systemEventSchema>;
+
+interface SystemEvent {
+  id: string;
+  eventType: string;
+  agentName: string;
+  createdAt: string | null;
+  payloadPreview: string;
+}
 
 async function loadSystemEvents(): Promise<{ events: SystemEvent[]; error?: string }> {
   const supabase = getSupabaseClient();
@@ -30,7 +40,7 @@ async function loadSystemEvents(): Promise<{ events: SystemEvent[]; error?: stri
   try {
     const { data, error } = await supabase
       .from('system_events')
-      .select('*')
+      .select('event_id,agent_name,event_type,payload,created_at')
       .order('created_at', { ascending: false })
       .limit(5);
 
@@ -45,14 +55,36 @@ async function loadSystemEvents(): Promise<{ events: SystemEvent[]; error?: stri
       return { events: [], error: 'Invalid event shape returned' };
     }
 
-    console.info('[agent]', `Loaded ${parsed.data.length} system_events`);
-    return { events: parsed.data };
+    const normalized: SystemEvent[] = parsed.data.map((event: RawSystemEvent) => {
+      const eventId = event.event_id ?? event.id ?? crypto.randomUUID();
+      const payloadPreview =
+        event.payload === undefined || event.payload === null
+          ? '—'
+          : (() => {
+              try {
+                const text = JSON.stringify(event.payload);
+                return text.length > 120 ? `${text.slice(0, 117)}...` : text;
+              } catch {
+                return String(event.payload);
+              }
+            })();
+
+      return {
+        id: String(eventId),
+        eventType: event.event_type ?? 'Unknown event',
+        agentName: event.agent_name ?? 'N/A',
+        createdAt: event.created_at ?? null,
+        payloadPreview,
+      };
+    });
+
+    console.info('[agent]', `Loaded ${normalized.length} system_events`);
+    return { events: normalized };
   } catch (unexpectedError) {
     console.error('[agent]', 'Unexpected error loading system_events', unexpectedError);
     return { events: [], error: 'Unexpected error' };
   }
 }
-
 function formatTimestamp(value?: string | null): string {
   if (!value) {
     return '—';
@@ -66,7 +98,7 @@ function formatTimestamp(value?: string | null): string {
   return parsedDate.toLocaleString();
 }
 
-export default async function HomePage(): Promise<JSX.Element> {
+export default async function HomePage(): Promise<ReactElement> {
   const { events, error } = await loadSystemEvents();
 
   return (
@@ -117,21 +149,22 @@ export default async function HomePage(): Promise<JSX.Element> {
               <TableHeader>
                 <TableRow className="bg-muted/50 text-muted-foreground">
                   <TableHead>Event</TableHead>
-                  <TableHead>Actor</TableHead>
+                  <TableHead>Agent</TableHead>
+                  <TableHead className="hidden md:table-cell">Payload</TableHead>
                   <TableHead className="text-right">Timestamp</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {error && (
                   <TableRow>
-                    <TableCell colSpan={3} className="text-sm text-destructive">
+                    <TableCell colSpan={4} className="text-sm text-destructive">
                       {error}
                     </TableCell>
                   </TableRow>
                 )}
                 {!error && events.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={3} className="text-sm text-muted-foreground">
+                    <TableCell colSpan={4} className="text-sm text-muted-foreground">
                       No events found.
                     </TableCell>
                   </TableRow>
@@ -140,13 +173,16 @@ export default async function HomePage(): Promise<JSX.Element> {
                   events.map((event) => (
                     <TableRow key={event.id}>
                       <TableCell className="font-medium">
-                        {event.event_type ?? 'Unknown event'}
+                        {event.eventType}
                       </TableCell>
                       <TableCell className="text-muted-foreground">
-                        {event.actor ?? 'N/A'}
+                        {event.agentName}
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell text-sm text-muted-foreground">
+                        {event.payloadPreview}
                       </TableCell>
                       <TableCell className="text-right text-sm text-muted-foreground">
-                        {formatTimestamp(event.created_at)}
+                        {formatTimestamp(event.createdAt)}
                       </TableCell>
                     </TableRow>
                   ))}
