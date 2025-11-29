@@ -1,99 +1,88 @@
-# ACE Frontend UI Flows
+# ACE Frontend UI Flows (v2 Backend Integration)
 
-This document defines the major interaction flows inside the Command Center.
+This document defines updated user and data flows for the ACE Command Center.
 
 ---
 
-### 1. Workflow Trigger Flow
-**Purpose:** Allow users (or AI operators) to start workflows manually.
-
+## 1. Workflow Trigger Flow
 ```
 User clicks [Run Content Cycle]
   ↓
-POST /api/workflows/content-cycle → Orchestrator
+POST /api/workflows/[id]/start via aceFetch()
   ↓
-Supabase logs `workflow.start`
+Backend triggers agents and logs `workflow.start`
   ↓
-Realtime event → UI progress bar updates
+GET /api/system-events → display progress
   ↓
-Agents emit `agent.success` / `agent.error`
-  ↓
-Workflow ends → results stored → summary visible
+Workflow completes → UI summary updates
 ```
 
-UI Components:
+Components:
 * `<WorkflowTriggerButton />`
-* `<LiveStatusFeed />`
+* `<WorkflowProgress />`
 * `<WorkflowSummaryCard />`
 
 ---
 
-### 2. Agent Console Flow
-**Purpose:** Observe and control individual ACE agents.
-
+## 2. Agent Console Flow
 ```
-[Agents → Scriptwriter]
+User selects agent → useAgents()
   ↓
-GET /api/agents/scriptwriter/status
+GET /api/agents
   ↓
-Supabase: fetch last 10 system_events
+Render list and statuses
   ↓
-Render activity timeline + test results
+User clicks [Run Agent]
   ↓
-User clicks [Run Agent] → POST /api/agents/scriptwriter/run
+POST /api/agents/[name]/run
   ↓
-Realtime updates stream into console view
+Monitor /api/system-events for updates
 ```
 
-UI Components:
+Components:
 * `<AgentCard />`
 * `<AgentLogViewer />`
 * `<AgentRunButton />`
 
 ---
 
-### 3. Artifact Viewing Flow
-**Purpose:** Display creative artifacts (scripts, experiments, editor outputs, media).
-
+## 3. Artifact Viewing Flow
 ```
-User navigates to [Artifacts]
+User navigates to Artifacts Hub
   ↓
-Supabase query: select * from artifacts where type='video_prompt'
+GET /api/artifacts
   ↓
-Render grid of cards with metadata + thumbnail
+Display cards with metadata
   ↓
-User clicks one → `/artifacts/[id]`
+User selects artifact → /artifacts/[id]
   ↓
-Fetch structured data from editorChainOutputSchema
+GET /api/artifacts/[id]
   ↓
-Tabs: [Prompt] [Structure] [Media] [Metadata]
+Render prompt, structure, media, metadata
 ```
 
-UI Components:
+Components:
 * `<ArtifactGrid />`
 * `<ArtifactDetailView />`
 * `<PromptViewer />`
 * `<MediaPreview />`
-* `<MetadataPanel />`
 
 ---
 
-### 4. Feedback Submission Flow
-**Purpose:** Collect human evaluation of outputs to improve OptimizationAgent.
-
+## 4. Feedback Flow
 ```
-User views artifact → clicks [Rate Output]
+User clicks [Rate Output]
   ↓
-Modal opens → selects stars, enters comment
+Modal opens → selects rating and comment
   ↓
-POST /api/feedback { artifact_id, rating, comment }
+POST /api/feedback
   ↓
-Supabase.insert('feedback')
+Backend logs feedback and returns success
   ↓
-analytics.event: feedback.create.success
+GET /api/system-events updates UI
 ```
 
-UI Components:
+Components:
 * `<FeedbackModal />`
 * `<RatingStars />`
 * `<FeedbackFeed />`

@@ -1,5 +1,5 @@
-import { z } from 'zod';
 import type { ReactElement } from 'react';
+import { z } from 'zod';
 
 import { Badge } from '../components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
@@ -11,7 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from '../components/ui/table';
-import { getSupabaseClient } from '../lib/supabase';
+import { aceFetch } from '../lib/api';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,6 +25,7 @@ const systemEventSchema = z.object({
 });
 
 type RawSystemEvent = z.infer<typeof systemEventSchema>;
+const systemEventListSchema = z.array(systemEventSchema);
 
 interface SystemEvent {
   id: string;
@@ -35,27 +36,10 @@ interface SystemEvent {
 }
 
 async function loadSystemEvents(): Promise<{ events: SystemEvent[]; error?: string }> {
-  const supabase = getSupabaseClient();
-
   try {
-    const { data, error } = await supabase
-      .from('system_events')
-      .select('event_id,agent_name,event_type,payload,created_at')
-      .order('created_at', { ascending: false })
-      .limit(5);
+    const rawEvents = await aceFetch('/api/system-events', systemEventListSchema);
 
-    if (error) {
-      console.error('[agent]', 'Failed to fetch system_events', error);
-      return { events: [], error: 'Unable to load events' };
-    }
-
-    const parsed = z.array(systemEventSchema).safeParse(data ?? []);
-    if (!parsed.success) {
-      console.error('[agent]', 'system_events validation failed', parsed.error.flatten());
-      return { events: [], error: 'Invalid event shape returned' };
-    }
-
-    const normalized: SystemEvent[] = parsed.data.map((event: RawSystemEvent) => {
+    const normalized: SystemEvent[] = rawEvents.map((event: RawSystemEvent) => {
       const eventId = event.event_id ?? event.id ?? crypto.randomUUID();
       const payloadPreview =
         event.payload === undefined || event.payload === null
@@ -78,7 +62,7 @@ async function loadSystemEvents(): Promise<{ events: SystemEvent[]; error?: stri
       };
     });
 
-    console.info('[agent]', `Loaded ${normalized.length} system_events`);
+    console.info('[agent]', `Loaded ${normalized.length} system_events via API`);
     return { events: normalized };
   } catch (unexpectedError) {
     console.error('[agent]', 'Unexpected error loading system_events', unexpectedError);
@@ -114,7 +98,7 @@ export default async function HomePage(): Promise<ReactElement> {
             </span>
           </h1>
           <p className="text-sm text-muted-foreground max-w-2xl">
-            Supabase-backed dashboard preview with recent events and placeholder metrics.
+            Backend API-backed dashboard preview with recent events and placeholder metrics.
           </p>
         </header>
 

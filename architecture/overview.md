@@ -1,61 +1,61 @@
-# ACE Frontend Architecture Overview
+# ACE Frontend Architecture Overview (v2 API-Integrated)
 
-### Purpose
-The ACE Frontend (also called the **Command Center**) is the visual and interactive layer of the Autonomous Content Engine. It provides:
-
-* Observability — real-time visibility into ACE workflows and agents.
-* Control — manual triggers for workflows, tests, and experiments.
-* Insight — dashboards and data visualizations for analytics.
-* Creativity — access to generative artifacts like scripts, video prompts, and media outputs.
-
-The frontend transforms ACE from a backend engine into an **interactive, transparent, and creative control surface**.
+The ACE Frontend (Command Center) visualizes, controls, and interprets the ACE Backend’s autonomous creative workflows.
 
 ---
 
-### Core Stack
-
-| Layer         |           Technology                |                   Description.                      |
-|---------------|-------------------------------------|-----------------------------------------------------|
-| Framework     | **Next.js 15 (App Router)**         | Core framework for routing and SSR/ISR              |
-| Language      | **TypeScript**                      | Strong typing for component and data integrity      |
-| Styling       | **Tailwind CSS + shadcn/ui**        | Rapid design with accessible component primitives   |
-| Visualization | **Recharts / D3.js**                | Charts and visualizations for metrics and workflows |
-| State & Data  | **React Query + Supabase Realtime** | Data fetching, caching, and live event streaming    |
-| Storage       | **Supabase Storage + R2/S3**        | Asset and media access                              |
-| Auth          | **Supabase Auth / Clerk**           | Restricted access for internal use                  |
+## Purpose
+* **Observability:** Real-time insight into workflows and agents.
+* **Control:** Manual triggers and feedback input.
+* **Visualization:** Charts and dashboards of system metrics.
+* **Creativity:** Display of AI-generated artifacts.
 
 ---
 
-### System Layout
+## Stack Overview
+
+| Layer | Technology | Description |
+|--------|-------------|-------------|
+| Framework | Next.js 15 (App Router) | Routing and SSR |
+| Language | TypeScript | Type-safe components |
+| Styling | Tailwind + shadcn/ui | Consistent UI primitives |
+| Data Source | ACE Backend API | Unified access to backend |
+| State | React Query | API data management |
+| Visualization | Recharts / D3.js | Metric and workflow visualization |
+| Storage | Supabase Storage (via backend) | Media assets |
+| Auth | x-api-key (future: Clerk) | Internal protection |
+
+---
+
+## System Layout
 
 ```
-+---------------------------------------------------------------+
-| ACE Command Center                                            |
-|---------------------------------------------------------------|
-| 🧭 Dashboard        |  Global health, metrics, event stream  |
-| 🤖 Agents Console   |  Per-agent views and manual triggers    |
-| 🎨 Artifact Hub     |  Scripts, prompts, videos, images      |
-| 🧠 Feedback View    |  Rate, annotate, and tag outputs       |
-| ⚙️ Settings         |  Environment + configuration           |
-+---------------------------------------------------------------+
++--------------------------------------------------+
+| ACE Command Center                               |
+|--------------------------------------------------|
+| 🧭 Dashboard       → Global system metrics       |
+| 🤖 Agents Console  → Trigger/monitor agents       |
+| 🎨 Artifact Hub    → View creative outputs        |
+| 🧠 Feedback View   → Rate and annotate results    |
+| ⚙️ Settings        → Configure API base + keys    |
++--------------------------------------------------+
 ```
 
 ---
 
-### Data Flow
+## Data Flow
 
-1. **Frontend → Orchestrator**: User triggers workflows or agents via API routes (REST/GraphQL).
-2. **Orchestrator → Supabase**: Agents write `system_events` and results to database.
-3. **Supabase → Frontend (Realtime)**: UI receives live updates on workflow progress.
-4. **Frontend → Storage**: Media assets retrieved for display.
+1. **Frontend → Backend:** User triggers `/api/...` endpoint via `aceFetch()`.
+2. **Backend → Supabase:** Handler calls repositories and logs events.
+3. **Backend → Frontend:** API returns standardized response.
+4. **Frontend → Display:** React Query renders updates in UI.
 
 ---
 
-### Extensibility
-* All views are modular React components.
-* Every agent has a corresponding **UI module** in `/components/agents/`.
-* New creative artifact types can be added under `/components/artifacts/`.
-* Data-fetching hooks use standard patterns (`useQuery`, `useMutation`).
-* Global design tokens define consistent visuals across modules.
+## Extensibility
+- Add new hooks in `/hooks/` for new endpoints.
+- Add agent UIs under `/components/agents/`.
+- Extend Artifact Hub with `/components/artifacts/`.
+- Maintain schema alignment with backend Zod models.
 
 ---
