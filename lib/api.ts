@@ -1,6 +1,9 @@
 // lib/api.ts
 import { z } from 'zod';
 
+export const ACE_AUTH_TOKEN_KEY = 'ace_auth_token';
+export const ACE_AUTH_USER_KEY = 'ace_auth_user';
+
 export interface AceResponse<T> {
   success: boolean;
   data: T;
@@ -16,6 +19,10 @@ export async function aceFetch<T>(
   if (!base) throw new Error('Missing NEXT_PUBLIC_API_BASE_URL');
 
   const isBrowser = typeof window !== 'undefined';
+  const authToken =
+    isBrowser && typeof localStorage !== 'undefined'
+      ? localStorage.getItem(ACE_AUTH_TOKEN_KEY)
+      : null;
   const shouldProxy =
     isBrowser &&
     (base.startsWith('http://') || base.startsWith('https://')) &&
@@ -30,6 +37,7 @@ export async function aceFetch<T>(
     headers: {
       'Content-Type': 'application/json',
       'x-api-key': process.env.NEXT_PUBLIC_API_KEY ?? 'dev',
+      ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
       ...options.headers,
     },
     cache: 'no-store',
