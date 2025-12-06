@@ -15,7 +15,17 @@ export async function aceFetch<T>(
   const base = process.env.NEXT_PUBLIC_API_BASE_URL;
   if (!base) throw new Error('Missing NEXT_PUBLIC_API_BASE_URL');
 
-  const res = await fetch(`${base}${path}`, {
+  const isBrowser = typeof window !== 'undefined';
+  const shouldProxy =
+    isBrowser &&
+    (base.startsWith('http://') || base.startsWith('https://')) &&
+    !base.startsWith(window.location.origin);
+
+  const target = shouldProxy
+    ? `/api/ace-proxy?path=${encodeURIComponent(path)}`
+    : `${base}${path}`;
+
+  const res = await fetch(target, {
     ...options,
     headers: {
       'Content-Type': 'application/json',

@@ -16,5 +16,6 @@ export function useArtifacts() {
   return useQuery<ArtifactRecord[], Error>({
     queryKey: ['artifacts'],
     queryFn: () => aceFetch('/api/artifacts'),
+    retry: 1,
   });
 }
