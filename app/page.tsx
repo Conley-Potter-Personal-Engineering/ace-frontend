@@ -11,7 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from '../components/ui/table';
-import { aceFetch } from '../lib/api';
+import { aceFetchValidated } from '../lib/api';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,7 +37,7 @@ interface SystemEvent {
 
 async function loadSystemEvents(): Promise<{ events: SystemEvent[]; error?: string }> {
   try {
-    const rawEvents = await aceFetch('/api/system-events', systemEventListSchema);
+    const rawEvents = await aceFetchValidated('/api/system-events', systemEventListSchema);
 
     const normalized: SystemEvent[] = rawEvents.map((event: RawSystemEvent) => {
       const eventId = event.event_id ?? event.id ?? crypto.randomUUID();
@@ -45,13 +45,13 @@ async function loadSystemEvents(): Promise<{ events: SystemEvent[]; error?: stri
         event.payload === undefined || event.payload === null
           ? '—'
           : (() => {
-              try {
-                const text = JSON.stringify(event.payload);
-                return text.length > 120 ? `${text.slice(0, 117)}...` : text;
-              } catch {
-                return String(event.payload);
-              }
-            })();
+            try {
+              const text = JSON.stringify(event.payload);
+              return text.length > 120 ? `${text.slice(0, 117)}...` : text;
+            } catch {
+              return String(event.payload);
+            }
+          })();
 
       return {
         id: String(eventId),

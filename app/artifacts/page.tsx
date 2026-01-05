@@ -118,7 +118,7 @@ function ArtifactsTable(): ReactElement {
                     </TableCell>
                     <TableCell className="text-right">
                       <Link
-                        href={`/artifacts/${artifact.id}`}
+                        href={`/artifacts/${artifact.id}` as any}
                         className={cn(
                           buttonVariants({ variant: 'ghost', size: 'sm' }),
                           'text-sm'
