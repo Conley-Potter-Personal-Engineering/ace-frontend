@@ -15,11 +15,28 @@ async function handleProxy(req: NextRequest): Promise<NextResponse> {
   const method = req.method ?? 'GET';
   const hasBody = method !== 'GET' && method !== 'HEAD';
   const body = hasBody ? await req.json().catch(() => undefined) : undefined;
+  const forwardHeaders: Record<string, string> = {};
+
+  const authorization = req.headers.get('authorization');
+  if (authorization) {
+    forwardHeaders.Authorization = authorization;
+  }
+
+  const correlationId = req.headers.get('x-correlation-id');
+  if (correlationId) {
+    forwardHeaders['x-correlation-id'] = correlationId;
+  }
+
+  const workflowId = req.headers.get('x-workflow-id');
+  if (workflowId) {
+    forwardHeaders['x-workflow-id'] = workflowId;
+  }
 
   try {
     const data = await aceFetch(path, {
       method,
       body: body ? JSON.stringify(body) : undefined,
+      headers: forwardHeaders,
     });
 
     return NextResponse.json({ success: true, data });
