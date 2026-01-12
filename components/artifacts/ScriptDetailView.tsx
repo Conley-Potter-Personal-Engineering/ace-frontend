@@ -147,7 +147,7 @@ export function ScriptDetailView({ scriptId }: ScriptDetailViewProps) {
           </div>
         </div>
 
-        <ScriptActions scriptId={scriptId} scriptTitle={title} />
+        <ScriptActions scriptId={scriptId} />
       </div>
 
       {data.hook && data.hook.trim().length > 0 && (

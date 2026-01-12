@@ -14,6 +14,7 @@ function createQueryClient() {
     defaultOptions: {
       queries: {
         retry: false,
+        gcTime: 0,
         staleTime: 0,
       },
     },

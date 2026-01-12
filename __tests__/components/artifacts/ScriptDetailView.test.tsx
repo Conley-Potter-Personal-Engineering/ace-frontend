@@ -149,7 +149,7 @@ describe('ScriptDetailView', () => {
     expect(screen.getByText('ACE Widget')).toBeInTheDocument()
     expect(screen.getByText('Related Experiments')).toBeInTheDocument()
     expect(
-      screen.getByLabelText('View experiment exp-1234')
+      await screen.findByLabelText('View experiment exp-1234')
     ).toBeInTheDocument()
     expect(screen.getByText('Published')).toBeInTheDocument()
   })

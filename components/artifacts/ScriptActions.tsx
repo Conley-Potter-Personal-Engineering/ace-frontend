@@ -16,10 +16,9 @@ interface EditorRunResponse {
 
 interface ScriptActionsProps {
   scriptId: string;
-  scriptTitle?: string | null;
 }
 
-export function ScriptActions({ scriptId, scriptTitle }: ScriptActionsProps) {
+export function ScriptActions({ scriptId }: ScriptActionsProps) {
   const router = useRouter();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -74,7 +73,6 @@ export function ScriptActions({ scriptId, scriptTitle }: ScriptActionsProps) {
           createAsset.mutate();
         }}
         disabled={isBusy}
-        aria-label={`Create asset from ${scriptTitle ?? 'script'}`}
         className="shadow-soft"
       >
         {createAsset.isPending ? (

@@ -58,11 +58,10 @@ export type ArtifactDetail =
   | VideoArtifactDetail
   | PostArtifactDetail;
 
-export function useArtifact(id: string) {
-  return useQuery<ArtifactDetail, Error>({
+export function useArtifact<T = ArtifactDetail>(id: string) {
+  return useQuery<T, Error>({
     queryKey: ['artifact', id],
-    queryFn: () => aceFetch<ArtifactDetail>(`/api/artifacts/${id}`),
+    queryFn: () => aceFetch<T>(`/api/artifacts/${id}`),
     enabled: !!id,
-    retry: 1,
   });
 }
