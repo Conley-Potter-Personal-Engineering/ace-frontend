@@ -176,7 +176,7 @@ describe('ScriptDetailView', () => {
     await user.click(createButton)
 
     await waitFor(() => {
-      expect(__mockPush).toHaveBeenCalledWith('/artifacts/assets/asset-99')
+      expect(__mockPush).toHaveBeenCalledWith('/artifacts/videos/asset-99')
     })
 
     expect(receivedScriptId).toBe(script.id)

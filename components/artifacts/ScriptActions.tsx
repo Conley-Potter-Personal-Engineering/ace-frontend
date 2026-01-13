@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Loader2, Pencil, PlusCircle, Trash2 } from 'lucide-react';
 
 import { aceFetch } from '@/lib/api';
@@ -20,6 +20,7 @@ interface ScriptActionsProps {
 
 export function ScriptActions({ scriptId }: ScriptActionsProps) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
@@ -30,9 +31,12 @@ export function ScriptActions({ scriptId }: ScriptActionsProps) {
         body: JSON.stringify({ scriptId }),
       }),
     onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ['agents'] });
+      queryClient.invalidateQueries({ queryKey: ['system-events'] });
+      queryClient.invalidateQueries({ queryKey: ['artifacts'] });
       const assetId = res.asset_id ?? res.assetId ?? res.id;
       if (assetId) {
-        router.push(`/artifacts/assets/${assetId}`);
+        router.push(`/artifacts/videos/${assetId}`);
       } else {
         setActionError('Asset created but no identifier was returned.');
       }
@@ -45,6 +49,8 @@ export function ScriptActions({ scriptId }: ScriptActionsProps) {
         method: 'DELETE',
       }),
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['artifact', scriptId] });
+      queryClient.invalidateQueries({ queryKey: ['artifacts'] });
       router.push('/artifacts');
     },
   });

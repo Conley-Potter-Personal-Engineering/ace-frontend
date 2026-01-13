@@ -130,7 +130,7 @@ export function RelatedExperiments({ scriptId }: RelatedExperimentsProps) {
                     if (experiment.asset_id) {
                       return (
                         <Link
-                          href={`/artifacts/assets/${experiment.asset_id}`}
+                          href={`/artifacts/videos/${experiment.asset_id}`}
                           className="text-primary hover:underline"
                         >
                           {experiment.asset_id}
