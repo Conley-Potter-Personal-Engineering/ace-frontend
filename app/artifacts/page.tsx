@@ -100,35 +100,46 @@ function ArtifactsTable(): ReactElement {
               )}
               {!isLoading &&
                 !error &&
-                artifacts.map((artifact) => (
-                  <TableRow key={artifact.id}>
-                    <TableCell className="font-medium">
-                      {resolveArtifactName(artifact)}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      <Badge variant={typeBadgeVariant(artifact.type)} className="capitalize">
-                        {formatArtifactType(artifact.type)}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {resolveStatus(artifact)}
-                    </TableCell>
-                    <TableCell className="hidden sm:table-cell text-right text-sm text-muted-foreground">
-                      {formatCreatedAt(artifact.created_at)}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Link
-                        href={`/artifacts/${artifact.id}` as any}
-                        className={cn(
-                          buttonVariants({ variant: 'ghost', size: 'sm' }),
-                          'text-sm'
-                        )}
-                      >
-                        View
-                      </Link>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                artifacts.map((artifact) => {
+                  let href = `/artifacts/${artifact.id}`; // Fallback
+                  if (artifact.type === 'script') {
+                    href = `/artifacts/scripts/${artifact.id}`;
+                  } else if (artifact.type === 'video_asset') {
+                    href = `/artifacts/videos/${artifact.id}`;
+                  } else if (artifact.type === 'published_post' || artifact.type === 'post') {
+                    href = `/artifacts/posts/${artifact.id}`;
+                  }
+
+                  return (
+                    <TableRow key={artifact.id}>
+                      <TableCell className="font-medium">
+                        {resolveArtifactName(artifact)}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        <Badge variant={typeBadgeVariant(artifact.type)} className="capitalize">
+                          {formatArtifactType(artifact.type)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {resolveStatus(artifact)}
+                      </TableCell>
+                      <TableCell className="hidden sm:table-cell text-right text-sm text-muted-foreground">
+                        {formatCreatedAt(artifact.created_at)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Link
+                          href={href}
+                          className={cn(
+                            buttonVariants({ variant: 'ghost', size: 'sm' }),
+                            'text-sm'
+                          )}
+                        >
+                          View
+                        </Link>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
             </TableBody>
           </Table>
         </div>
