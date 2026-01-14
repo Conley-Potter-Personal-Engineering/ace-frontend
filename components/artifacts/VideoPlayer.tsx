@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, Download, Video as VideoIcon } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
@@ -32,6 +32,10 @@ export function VideoPlayer({
   const [hasError, setHasError] = useState(false);
 
   const durationLabel = useMemo(() => formatDuration(durationSeconds ?? undefined), [durationSeconds]);
+
+  useEffect(() => {
+    setHasError(false);
+  }, [src, poster]);
 
   if (!src) {
     return (
