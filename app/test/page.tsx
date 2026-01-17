@@ -22,6 +22,7 @@ import {
   TableHeader,
   TableRow,
 } from '../../components/ui/table';
+import { ProtectedRoute } from '@/src/components/ProtectedRoute';
 
 type AgentStatus = 'idle' | 'running' | 'error';
 
@@ -67,8 +68,9 @@ export default function TestPage(): React.ReactElement {
   };
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_20%_20%,rgba(237,197,49,0.14),transparent_32%),radial-gradient(circle_at_78%_8%,rgba(146,108,21,0.12),transparent_36%),linear-gradient(180deg,#0f0c08,#0c0906)] px-6 py-12 text-foreground">
-      <div className="mx-auto flex max-w-5xl flex-col gap-8">
+    <ProtectedRoute>
+      <main className="min-h-screen bg-[radial-gradient(circle_at_20%_20%,rgba(237,197,49,0.14),transparent_32%),radial-gradient(circle_at_78%_8%,rgba(146,108,21,0.12),transparent_36%),linear-gradient(180deg,#0f0c08,#0c0906)] px-6 py-12 text-foreground">
+        <div className="mx-auto flex max-w-5xl flex-col gap-8">
         <header className="space-y-3">
           <Badge variant="accent" className="bg-accent text-accent-foreground">
             shadcn/ui demo
@@ -246,6 +248,7 @@ export default function TestPage(): React.ReactElement {
           </Button>
         </div>
       </Modal>
-    </main>
+      </main>
+    </ProtectedRoute>
   );
 }

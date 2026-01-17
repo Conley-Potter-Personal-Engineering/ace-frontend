@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../..
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
 import { useArtifacts, type ArtifactRecord } from '../../lib/hooks/useArtifacts';
 import { cn } from '../../lib/utils';
+import { ProtectedRoute } from '@/src/components/ProtectedRoute';
 
 function formatArtifactType(type?: ArtifactRecord['type']): string {
   if (!type) return 'Unknown';
@@ -172,8 +173,10 @@ export default function ArtifactsPage(): ReactElement {
   const [queryClient] = useState(() => new QueryClient());
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <ArtifactsContent />
-    </QueryClientProvider>
+    <ProtectedRoute>
+      <QueryClientProvider client={queryClient}>
+        <ArtifactsContent />
+      </QueryClientProvider>
+    </ProtectedRoute>
   );
 }
