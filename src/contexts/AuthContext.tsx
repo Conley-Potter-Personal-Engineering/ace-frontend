@@ -10,157 +10,248 @@ import {
   type ReactNode,
 } from 'react'
 import { useMutation } from '@tanstack/react-query'
-import { z } from 'zod'
 
-import { aceFetchValidated } from '@/lib/api'
-import { authStorage } from '@/src/lib/authStorage'
-
-export interface User {
-  id: string
-  email: string
-  name: string
-}
+import type { User } from '@/src/lib/authApi'
+import {
+  finishPasskeyAuthentication,
+  finishPasskeyRegistration,
+  getCurrentUser,
+  login as loginRequest,
+  logout as logoutRequest,
+  refreshSession as refreshSessionRequest,
+  startPasskeyAuthentication,
+  startPasskeyRegistration,
+} from '@/src/lib/authApi'
+import {
+  getWebAuthnErrorMessage,
+  startPasskeyAuthentication as createPasskeyAssertion,
+  startPasskeyRegistration as createPasskeyAttestation,
+} from '@/src/lib/webauthn'
 
 export interface AuthContextType {
   user: User | null
   isAuthenticated: boolean
   isLoading: boolean
-  login: (email: string, password: string) => Promise<void>
+  login: (email: string, password: string) => Promise<{ requiresTwoFactor: boolean }>
+  authenticateWithPasskey: () => Promise<void>
   logout: () => Promise<void>
-  checkAuth: () => Promise<void>
+  checkAuth: () => Promise<boolean>
+  registerPasskey?: () => Promise<void>
 }
 
-const userSchema = z.object({
-  id: z.string(),
-  email: z.string().email(),
-  name: z.string(),
-})
-
-const loginResponseSchema = z.object({
-  token: z.string().optional(),
-  user: userSchema,
-})
-
-const meResponseSchema = z.object({
-  user: userSchema,
-})
-
-const logoutResponseSchema = z.union([z.object({}), z.null()]).optional()
-
 export const AuthContext = createContext<AuthContextType | undefined>(undefined)
+
+const refreshIntervalMs = 10 * 60 * 1000
 
 const normalizeAuthError = (error: unknown): string => {
   if (error instanceof Error) {
     const message = error.message.toLowerCase()
 
-    if (message.includes('invalid') || message.includes('credential')) {
+    if (
+      message.includes('invalid') ||
+      message.includes('credential') ||
+      message.includes('unauthorized') ||
+      message.includes('forbidden') ||
+      message.includes('401') ||
+      message.includes('403')
+    ) {
       return 'Invalid email or password.'
     }
 
-    if (message.includes('unauthorized')) {
-      return 'Your session is no longer valid. Please sign in again.'
+    if (message.includes('rate')) {
+      return 'Too many attempts. Please wait and try again.'
     }
 
-    if (message.includes('fetch') || message.includes('network')) {
+    if (message.includes('fetch') || message.includes('network') || message.includes('timeout')) {
       return 'Unable to reach the server. Please try again.'
+    }
+
+    if (error.message) {
+      return error.message
     }
   }
 
   return 'Unable to sign in. Please try again.'
 }
 
-const buildAuthHeaders = (token: string | null): HeadersInit => {
-  if (!token) return {}
-  return { Authorization: `Bearer ${token}` }
+const normalizePasskeyError = (error: unknown): string => {
+  return getWebAuthnErrorMessage(error)
+}
+
+const shouldClearSession = (error: unknown): boolean => {
+  if (!(error instanceof Error)) return false
+  const message = error.message.toLowerCase()
+  return (
+    message.includes('unauthorized') ||
+    message.includes('forbidden') ||
+    message.includes('expired') ||
+    message.includes('session') ||
+    message.includes('401') ||
+    message.includes('403')
+  )
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
-  const authActionRef = useRef(0)
+  const [hasCheckedAuth, setHasCheckedAuth] = useState(false)
+  const authEpochRef = useRef(0)
 
   const { mutateAsync: runCheckAuth, isPending: isCheckingAuth } = useMutation({
-    mutationFn: async () => {
-      const token = authStorage.getToken()
-
-      return aceFetchValidated('/api/auth/me', meResponseSchema, {
-        method: 'GET',
-        headers: buildAuthHeaders(token),
-        credentials: 'include',
-      })
-    },
+    mutationFn: getCurrentUser,
     retry: false,
   })
 
   const { mutateAsync: runLogin, isPending: isLoggingIn } = useMutation({
-    mutationFn: async (payload: { email: string; password: string }) => {
-      return aceFetchValidated('/api/auth/login', loginResponseSchema, {
-        method: 'POST',
-        body: JSON.stringify(payload),
-        credentials: 'include',
-      })
-    },
+    mutationFn: loginRequest,
     retry: false,
   })
 
   const { mutateAsync: runLogout, isPending: isLoggingOut } = useMutation({
+    mutationFn: logoutRequest,
+    retry: false,
+  })
+
+  const { mutateAsync: runPasskeyAuth, isPending: isAuthenticating } = useMutation({
     mutationFn: async () => {
-      return aceFetchValidated('/api/auth/logout', logoutResponseSchema, {
-        method: 'POST',
-        credentials: 'include',
-      })
+      const { publicKey } = await startPasskeyAuthentication()
+      const assertion = await createPasskeyAssertion(publicKey)
+      const { user: nextUser } = await finishPasskeyAuthentication(assertion)
+      return nextUser
     },
     retry: false,
   })
 
+  const { mutateAsync: runPasskeyRegistration, isPending: isRegistering } = useMutation({
+    mutationFn: async () => {
+      const { publicKey } = await startPasskeyRegistration()
+      const attestation = await createPasskeyAttestation(publicKey)
+      const { user: nextUser } = await finishPasskeyRegistration(attestation)
+      return nextUser ?? null
+    },
+    retry: false,
+  })
+
+  const { mutateAsync: runRefresh, isPending: isRefreshing } = useMutation({
+    mutationFn: refreshSessionRequest,
+    retry: false,
+  })
+
   const checkAuth = useCallback(async () => {
-    const actionId = authActionRef.current
+    const requestId = authEpochRef.current
 
     try {
       const data = await runCheckAuth()
 
-      if (authActionRef.current !== actionId) return
+      if (authEpochRef.current !== requestId) return false
 
       setUser(data.user)
+      return true
     } catch (error) {
-      if (authActionRef.current !== actionId) return
+      if (authEpochRef.current !== requestId) return false
 
       console.error('[auth] session check failed', error)
-      authStorage.clearToken()
-      setUser(null)
+
+      if (shouldClearSession(error)) {
+        setUser(null)
+      }
+      return false
+    } finally {
+      if (authEpochRef.current === requestId) {
+        setHasCheckedAuth(true)
+      }
     }
   }, [runCheckAuth])
 
   const login = useCallback(
     async (email: string, password: string) => {
-      authActionRef.current += 1
+      authEpochRef.current += 1
 
       try {
-        const data = await runLogin({ email, password })
+        const response = await runLogin({ email, password })
 
-        if (data.token) {
-          authStorage.setToken(data.token)
-        }
-
-        setUser(data.user)
+        return { requiresTwoFactor: response.requiresTwoFactor }
       } catch (error) {
         console.error('[auth] login failed', error)
-        authStorage.clearToken()
-        setUser(null)
+
+        if (shouldClearSession(error)) {
+          setUser(null)
+        }
+
         throw new Error(normalizeAuthError(error))
       }
     },
     [runLogin]
   )
 
+  const authenticateWithPasskey = useCallback(async () => {
+    authEpochRef.current += 1
+    const requestId = authEpochRef.current
+
+    try {
+      const nextUser = await runPasskeyAuth()
+
+      if (authEpochRef.current !== requestId) return
+
+      setUser(nextUser)
+    } catch (error) {
+      if (authEpochRef.current !== requestId) return
+
+      console.error('[auth] passkey authentication failed', error)
+      setUser(null)
+      throw new Error(normalizePasskeyError(error))
+    }
+  }, [runPasskeyAuth])
+
+  const registerPasskey = useCallback(async () => {
+    authEpochRef.current += 1
+    const requestId = authEpochRef.current
+
+    try {
+      const nextUser = await runPasskeyRegistration()
+
+      if (authEpochRef.current !== requestId) return
+
+      if (nextUser) {
+        setUser(nextUser)
+      }
+    } catch (error) {
+      if (authEpochRef.current !== requestId) return
+
+      console.error('[auth] passkey registration failed', error)
+      throw new Error(normalizePasskeyError(error))
+    }
+  }, [runPasskeyRegistration])
+
+  const refreshSession = useCallback(async () => {
+    const requestId = authEpochRef.current
+
+    try {
+      const data = await runRefresh()
+
+      if (authEpochRef.current !== requestId) return
+
+      if (data.user) {
+        setUser(data.user)
+      }
+    } catch (error) {
+      if (authEpochRef.current !== requestId) return
+
+      console.error('[auth] session refresh failed', error)
+
+      if (shouldClearSession(error)) {
+        setUser(null)
+      }
+    }
+  }, [runRefresh])
+
   const logout = useCallback(async () => {
-    authActionRef.current += 1
+    authEpochRef.current += 1
 
     try {
       await runLogout()
     } catch (error) {
       console.error('[auth] logout failed', error)
     } finally {
-      authStorage.clearToken()
       setUser(null)
     }
   }, [runLogout])
@@ -169,16 +260,49 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     void checkAuth()
   }, [checkAuth])
 
+  useEffect(() => {
+    if (!user) return
+
+    const interval = window.setInterval(() => {
+      void refreshSession()
+    }, refreshIntervalMs)
+
+    return () => window.clearInterval(interval)
+  }, [user, refreshSession])
+
   const value = useMemo<AuthContextType>(
     () => ({
       user,
       isAuthenticated: Boolean(user),
-      isLoading: isCheckingAuth || isLoggingIn || isLoggingOut,
+      isLoading:
+        !hasCheckedAuth ||
+        isCheckingAuth ||
+        isLoggingIn ||
+        isAuthenticating ||
+        isRegistering ||
+        isRefreshing ||
+        isLoggingOut,
       login,
+      authenticateWithPasskey,
       logout,
       checkAuth,
+      registerPasskey,
     }),
-    [user, isCheckingAuth, isLoggingIn, isLoggingOut, login, logout, checkAuth]
+    [
+      user,
+      hasCheckedAuth,
+      isCheckingAuth,
+      isLoggingIn,
+      isAuthenticating,
+      isRegistering,
+      isRefreshing,
+      isLoggingOut,
+      login,
+      authenticateWithPasskey,
+      logout,
+      checkAuth,
+      registerPasskey,
+    ]
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

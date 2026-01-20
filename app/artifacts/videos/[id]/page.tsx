@@ -2,10 +2,11 @@
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useParams, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactElement } from 'react';
 
 import { VideoAssetDetailView } from '@/components/artifacts/VideoAssetDetailView';
 import { Button } from '@/components/ui/button';
+import { ProtectedRoute } from '@/src/components/ProtectedRoute';
 
 export default function VideoAssetPage() {
   const params = useParams<{ id: string | string[] }>();
@@ -20,8 +21,10 @@ export default function VideoAssetPage() {
     }
   }, [assetId]);
 
+  let content: ReactElement;
+
   if (!assetId) {
-    return (
+    content = (
       <div className="mx-auto flex max-w-3xl flex-col items-start gap-4 p-6">
         <p className="text-sm text-destructive">Missing asset id.</p>
         <Button variant="outline" onClick={() => router.push('/artifacts')}>
@@ -29,13 +32,15 @@ export default function VideoAssetPage() {
         </Button>
       </div>
     );
+  } else {
+    content = (
+      <QueryClientProvider client={queryClient}>
+        <div className="mx-auto flex max-w-5xl flex-col gap-6 p-6">
+          <VideoAssetDetailView assetId={assetId} />
+        </div>
+      </QueryClientProvider>
+    );
   }
 
-  return (
-    <QueryClientProvider client={queryClient}>
-      <div className="mx-auto flex max-w-5xl flex-col gap-6 p-6">
-        <VideoAssetDetailView assetId={assetId} />
-      </div>
-    </QueryClientProvider>
-  );
+  return <ProtectedRoute>{content}</ProtectedRoute>;
 }

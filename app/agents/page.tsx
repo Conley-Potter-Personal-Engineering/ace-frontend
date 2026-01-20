@@ -11,6 +11,7 @@ import { AgentExecutionResult } from '@/components/agents/AgentExecutionResult';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { RefreshCw } from 'lucide-react';
+import { ProtectedRoute } from '@/src/components/ProtectedRoute';
 
 export default function AgentsConsole() {
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
@@ -36,7 +37,8 @@ export default function AgentsConsole() {
   };
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <ProtectedRoute>
+      <div className="container mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight">Agents Console</h1>
         <Button variant="outline" size="sm" onClick={handleRefresh}>
@@ -140,6 +142,7 @@ export default function AgentsConsole() {
           </CardContent>
         </Card>
       </section>
-    </div>
+      </div>
+    </ProtectedRoute>
   );
 }

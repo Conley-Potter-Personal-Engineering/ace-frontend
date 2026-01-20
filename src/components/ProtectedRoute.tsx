@@ -10,8 +10,8 @@ interface ProtectedRouteProps {
   redirectTo?: string
 }
 
-export function ProtectedRoute({ children, redirectTo = '/login' }: ProtectedRouteProps) {
-  const { isAuthenticated, isLoading } = useAuth()
+export function ProtectedRoute({ children, redirectTo = '/sign-in' }: ProtectedRouteProps) {
+  const { isAuthenticated, isLoading, checkAuth } = useAuth()
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -30,7 +30,28 @@ export function ProtectedRoute({ children, redirectTo = '/login' }: ProtectedRou
     router.replace(target)
   }, [isLoading, isAuthenticated, redirectPath, redirectTo, router])
 
-  if (isLoading) {
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        void checkAuth()
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibility)
+    return () => document.removeEventListener('visibilitychange', handleVisibility)
+  }, [checkAuth])
+
+  useEffect(() => {
+    if (!isAuthenticated) return
+
+    const interval = window.setInterval(() => {
+      void checkAuth()
+    }, 5 * 60 * 1000)
+
+    return () => window.clearInterval(interval)
+  }, [isAuthenticated, checkAuth])
+
+  if (isLoading && !isAuthenticated) {
     return (
       <div className="flex min-h-[40vh] items-center justify-center">
         <div className="flex items-center gap-3 text-sm text-muted-foreground" role="status" aria-live="polite">
