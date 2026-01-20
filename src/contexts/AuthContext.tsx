@@ -35,7 +35,7 @@ export interface AuthContextType {
   login: (email: string, password: string) => Promise<{ requiresTwoFactor: boolean }>
   authenticateWithPasskey: () => Promise<void>
   logout: () => Promise<void>
-  checkAuth: () => Promise<void>
+  checkAuth: () => Promise<boolean>
   registerPasskey?: () => Promise<void>
 }
 
@@ -142,19 +142,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const data = await runCheckAuth()
 
-      if (authEpochRef.current !== requestId) return
+      if (authEpochRef.current !== requestId) return false
 
       setUser(data.user)
+      return true
     } catch (error) {
-      if (authEpochRef.current !== requestId) return
+      if (authEpochRef.current !== requestId) return false
 
       console.error('[auth] session check failed', error)
 
       if (shouldClearSession(error)) {
         setUser(null)
       }
+      return false
     } finally {
-      setHasCheckedAuth(true)
+      if (authEpochRef.current === requestId) {
+        setHasCheckedAuth(true)
+      }
     }
   }, [runCheckAuth])
 

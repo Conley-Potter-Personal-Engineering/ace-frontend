@@ -50,7 +50,10 @@ export function SignInPage() {
   const [isPasskeyPending, setIsPasskeyPending] = useState(false)
   const [passkeySupported, setPasskeySupported] = useState(true)
   const [hasAutoPrompted, setHasAutoPrompted] = useState(false)
+  const [toastMessage, setToastMessage] = useState('')
+  const [isToastVisible, setIsToastVisible] = useState(false)
   const passkeyButtonRef = useRef<HTMLButtonElement>(null)
+  const toastTimeoutRef = useRef<ReturnType<typeof window.setTimeout> | null>(null)
 
   useEffect(() => {
     setPasskeySupported(isWebAuthnSupported())
@@ -66,6 +69,27 @@ export function SignInPage() {
       passkeyButtonRef.current?.focus()
     }
   }, [step])
+
+  useEffect(() => {
+    return () => {
+      if (toastTimeoutRef.current) {
+        window.clearTimeout(toastTimeoutRef.current)
+      }
+    }
+  }, [])
+
+  const showToast = useCallback((message: string) => {
+    setToastMessage(message)
+    setIsToastVisible(true)
+
+    if (toastTimeoutRef.current) {
+      window.clearTimeout(toastTimeoutRef.current)
+    }
+
+    toastTimeoutRef.current = window.setTimeout(() => {
+      setIsToastVisible(false)
+    }, 4000)
+  }, [])
 
   const handlePasskey = useCallback(async () => {
     if (!passkeySupported) {
@@ -121,7 +145,15 @@ export function SignInPage() {
         return
       }
 
-      await checkAuth()
+      const confirmed = await checkAuth()
+
+      if (!confirmed) {
+        const message = 'Unable to confirm your session. Please try again.'
+        setFormError(message)
+        showToast(message)
+        return
+      }
+
       router.replace(redirectTarget)
     } catch (error) {
       setFormError(getErrorMessage(error, 'Unable to sign in. Please try again.'))
@@ -140,6 +172,17 @@ export function SignInPage() {
 
   return (
     <div className="flex min-h-[70vh] items-center justify-center px-4 py-10">
+      {isToastVisible ? (
+        <div className="fixed inset-x-4 top-6 z-50 mx-auto flex max-w-md justify-center">
+          <div
+            className="pointer-events-auto w-full rounded-md border border-border/70 bg-card/95 px-4 py-3 text-sm text-foreground shadow-soft backdrop-blur"
+            role="status"
+            aria-live="polite"
+          >
+            {toastMessage}
+          </div>
+        </div>
+      ) : null}
       <Card className="w-full max-w-md bg-card/80 shadow-soft">
         <CardHeader className="space-y-2">
           <CardTitle className="text-2xl">Sign in</CardTitle>
